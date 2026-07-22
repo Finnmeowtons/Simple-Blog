@@ -4,19 +4,20 @@ import 'package:provider/provider.dart';
 import 'package:simple_blog/app_router.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/auth_service.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -28,15 +29,20 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Register"),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
-          const Text("Login Screen"),
+          const Text("Register Screen"),
           Form(
-            key: _formKey,
-            child: Column(children: [
+              key: _formKey,
+              child: Column(
+            children: [
               TextFormField(
                 controller: _emailController,
-                  autofillHints: const [ AutofillHints.email ],
+                autofillHints: const [ AutofillHints.email ],
                 decoration: const InputDecoration(
                   labelText: "Email",
                 ),
@@ -47,11 +53,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     return "Please enter a valid email";
                   }
                   return null;
-                }),
+                },
+              ),
               TextFormField(
                 controller: _passwordController,
-                  obscureText: true,
-                  autofillHints: const [ AutofillHints.password ],
+                obscureText: true,
+                autofillHints: const [ AutofillHints.password ],
                 decoration: const InputDecoration(
                   labelText: "Password",
                 ),
@@ -62,40 +69,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     return "Password must be at least 6 characters";
                   }
                   return null;
-                }),
-            ],),
-          ),
-          Consumer<AuthProvider>(
-            builder: (_, auth, _) {
-              return ElevatedButton(
-                onPressed: auth.loading ? null : () async {
-                  if (_formKey.currentState!.validate()) {
-                    await context.read<AuthProvider>().login(
-                      email: _emailController.text,
-                      password: _passwordController.text,
-                    );
-
-                    if (auth.error != null){
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(auth.error!),
-                        ),
-                      );
-                    }
-                  }
                 },
-                child: auth.loading ? const CircularProgressIndicator() : const Text("Login"),
-              );
-            },
-          ),
-          TextButton(
-            onPressed: () {
-              context.push('/register');
-            },
-            child: const Text("No Account Yet?"),
-          ),
+              ),
+              Consumer<AuthProvider>(
+                builder: (_, auth, _) {
+                  return ElevatedButton(onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      // Register user
+                      await context.read<AuthProvider>().register(
+                        email: _emailController.text,
+                        password: _passwordController.text,
+                      );
+
+                      if (auth.error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(auth.error!),
+                          ),
+                        );
+                      }
+                    }
+                  }, child: auth.loading ? const CircularProgressIndicator() : const Text("Register"));
+                },
+              )
+            ],
+          ))
         ],
       ),
-    );
+      );
   }
 }

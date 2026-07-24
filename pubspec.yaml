@@ -40,6 +40,8 @@ dependencies:
   image_picker: ^1.2.3
   file_picker: ^11.0.2
   uuid: ^4.6.0
+  dotted_border: ^3.1.0
+  zo_animated_border: ^1.0.7
 
 dev_dependencies:
   flutter_test:

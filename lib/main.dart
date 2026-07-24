@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:simple_blog/providers/auth_provider.dart';
 import 'package:simple_blog/providers/post_provider.dart';
 
+import 'minimal_theme.dart';
 import 'providers/count_provider.dart';
 import 'app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -40,6 +41,8 @@ class MyApp extends StatelessWidget {
       child: MaterialApp.router(
         routerConfig: createRouter(authProvider),
         debugShowCheckedModeBanner: false,
+        title: 'Simple Blog',
+        theme: MinimalTheme.light,
       ),
     );
   }

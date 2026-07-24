@@ -1,3 +1,4 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +6,8 @@ import 'package:simple_blog/models/post_model.dart';
 import 'package:simple_blog/providers/post_provider.dart';
 import 'package:simple_blog/services/post_service.dart';
 import 'package:simple_blog/services/storage_service.dart';
+import 'package:zo_animated_border/widget/zo_dual_border.dart';
+import 'package:zo_animated_border/widget/zo_fire_border.dart';
 
 import '../models/post_image_model.dart';
 import '../providers/auth_provider.dart';
@@ -46,7 +49,9 @@ class _ForumScreenState extends State<ForumScreen> {
       appBar: _appBar(),
       body: Column(
         children: [
+          SizedBox(height: 16),
           _createPostForm(),
+          SizedBox(height: 16),
           Expanded(
             child: Consumer<PostProvider>(
               builder: (context, provider, child) {
@@ -73,7 +78,7 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
-  PreferredSizeWidget _appBar(){
+  PreferredSizeWidget _appBar() {
     return AppBar(
       title: const Text("Forum"),
       centerTitle: true,
@@ -88,273 +93,33 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
-  Widget _buildPost(Post post, bool isOwner, String email) {
-    return Center(
+  Widget _createPostForm() {
+    return ZoDualBorder(
+      glowOpacity: 0.1,
+      firstBorderColor: Colors.black87,
+      secondBorderColor: Colors.black87,
+      trackBorderColor: Colors.transparent,
+      borderWidth: 1,
+      animationDuration: const Duration(milliseconds: 6000),
+      borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         width: 300,
-        child: Card(
-          elevation: 5,
-          margin: const EdgeInsets.symmetric(vertical: 16.0),
-          child: Column(
-            children: [
-              Text(email),
-              ListTile(title: Text(post.title), subtitle: Text(post.content)),
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: post.images.length,
-                  itemBuilder: (context, index) {
-                    final image = post.images[index];
-
-                    final imageUrl = StorageService().getImageUrl(image.imagePath);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          imageUrl,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  },
-                ),
+        height: 60,
+        child: Consumer<PostProvider>(
+          builder: (context, provider, child) {
+            return InkWell(
+              onTap: () {
+                showPostFormDialog(null);
+              },
+              child: Center(
+                child: Text('Create Post', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              if (isOwner)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      onPressed: () async {
-                        final success = await context.read<PostProvider>().deletePost(post: post);
-                        if (success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted!")));
-                        }
-                      },
-                      icon: const Icon(Icons.delete),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        showUpdateDialog(post);
-                      },
-                      icon: Icon(Icons.edit),
-                    ),
-                  ],
-                ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
-  }
-
-  Future<void> showUpdateDialog(Post post) async {
-    final updateFormKey = GlobalKey<FormState>();
-    final titleController = TextEditingController(text: post.title);
-    final contentController = TextEditingController(text: post.content);
-
-    final List<PostImage> existingImages = List.from(post.images);
-    final List<PlatformFile> newImages = [];
-
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text("Update Post"),
-              content: SizedBox(
-                width: 600,
-                child: Card(
-                  elevation: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Form(
-                          key: updateFormKey,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                decoration: const InputDecoration(labelText: "Title"),
-                                controller: titleController,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return "Please enter a title";
-                                  }
-                                  return null;
-                                },
-                              ),
-                              TextFormField(
-                                decoration: const InputDecoration(labelText: "Content"),
-                                maxLines: 5,
-                                controller: contentController,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return "Please enter content";
-                                  }
-                                  return null;
-                                },
-                              ),
-                              Row(
-                                children: [
-                                  ElevatedButton(
-                                    onPressed: () async {
-                                      // await FilePicker.clearTemporaryFiles();
-                                      final result = await FilePicker.pickFiles(
-                                        allowMultiple: true,
-                                        type: FileType.image,
-                                        withData: true,
-                                      );
-
-                                      if (result != null) {
-                                        setDialogState(() {
-                                          for (final file in result.files) {
-                                            if (!newImages.any((e) => e.name == file.name)) {
-                                              newImages.add(file);
-                                            }
-                                          }
-                                        });
-                                      }
-                                    },
-                                    child: const Text("Add Images"),
-                                  ),
-                                  Consumer<PostProvider>(
-                                    builder: (context, provider, child) {
-                                      return ElevatedButton(
-                                        onPressed: provider.loading ? null : () async {
-                                          if (!updateFormKey.currentState!.validate()) {
-                                            return;
-                                          }
-
-                                          final success = await context.read<PostProvider>().updatePost(
-                                            post: post,
-                                            title: titleController.text.trim(),
-                                            content: contentController.text.trim(),
-                                            remainingImages: existingImages,
-                                            newImages: newImages,
-                                          );
-
-
-                                          if (success && context.mounted) {
-                                            print("SUCCESS!");
-                                            Navigator.pop(context);
-                                            titleController.clear();
-                                            contentController.clear();
-
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post updated!")));
-
-                                            setState(() {
-                                              existingImages.clear();
-                                            });
-                                          }
-                                        },
-                                        child: provider.loading
-                                            ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                            : const Text("Submit"),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 16,),
-                        if (existingImages.isNotEmpty)
-                          SizedBox(
-                            height: 100,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: existingImages.length,
-                              itemBuilder: (context, index) {
-                                final image = existingImages[index];
-
-                                return Stack(
-                                  children: [
-                                    Image.network(
-                                      StorageService().getImageUrl(image.imagePath),
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                    ),
-                                    Positioned(
-                                      top: 0,
-                                      right: 0,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.close),
-                                        onPressed: () {
-                                          setDialogState(() {
-                                            existingImages.removeAt(index);
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                        SizedBox(
-                          height: 100,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: newImages.length,
-                            itemBuilder: (context, index) {
-                              final file = newImages[index];
-
-                              return Stack(
-                                children: [
-                                  Image.memory(
-                                    file.bytes!,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    child: IconButton(
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () {
-                                        setDialogState(() {
-                                          newImages.removeAt(index);
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                        // if (existingImages.isNotEmpty)
-                        //   Text("${existingImages.length} image(s) selected"),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _createPostForm() {
-
-    return
-      SizedBox(
+    SizedBox(
       width: 600,
       child: Card(
         elevation: 5,
@@ -389,14 +154,13 @@ class _ForumScreenState extends State<ForumScreen> {
                     ),
                     Row(
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _pickImages(),
-                          child: const Text("Upload Image"),
-                        ),
+                        ElevatedButton(onPressed: () => _pickImages(), child: const Text("Upload Image")),
                         Consumer<PostProvider>(
                           builder: (context, provider, child) {
                             return ElevatedButton(
-                              onPressed: provider.loading ? null : () async {
+                              onPressed: provider.loading
+                                  ? null
+                                  : () async {
                                 if (!_formKey.currentState!.validate()) {
                                   return;
                                 }
@@ -414,13 +178,7 @@ class _ForumScreenState extends State<ForumScreen> {
                                   });
                                 }
                               },
-                                child: provider.loading
-                                    ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                                    : const Text("Submit"),
+                              child: provider.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Submit"),
                             );
                           },
                         ),
@@ -429,33 +187,27 @@ class _ForumScreenState extends State<ForumScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: 16,),
+              SizedBox(height: 16),
               if (_selectedImages.isNotEmpty)
                 SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _selectedImages.length,
-                  itemBuilder: (context, index) {
-                    final file = _selectedImages[index];
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _selectedImages.length,
+                    itemBuilder: (context, index) {
+                      final file = _selectedImages[index];
 
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.memory(
-                          file.bytes!,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(file.bytes!, width: 80, height: 80, fit: BoxFit.cover),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-              if (_selectedImages.isNotEmpty)
-                Text("${_selectedImages.length} image(s) selected"),
+              if (_selectedImages.isNotEmpty) Text("${_selectedImages.length} image(s) selected"),
             ],
           ),
         ),
@@ -463,12 +215,318 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
-  Future<void> _pickImages() async {
-    final result = await FilePicker.pickFiles(
-      allowMultiple: true,
-      type: FileType.image,
-      withData: true,
+  Widget _buildPost(Post post, bool isOwner, String email) {
+    return Center(
+      child: SizedBox(
+        width: 800,
+        child: Column(
+          children: [
+            Text(email),
+            ListTile(
+              title: Text(post.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26)),
+              subtitle: Text(post.content, style: TextStyle(fontSize: 20)),
+              contentPadding: EdgeInsets.symmetric(vertical: 0),
+            ),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: post.images.length,
+                itemBuilder: (context, index) {
+                  final image = post.images[index];
+
+                  final imageUrl = StorageService().getImageUrl(image.imagePath);
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (isOwner)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      final success = await context.read<PostProvider>().deletePost(post: post);
+                      if (success && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted!")));
+                      }
+                    },
+                    icon: const Icon(Icons.delete),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      showPostFormDialog(post);
+                    },
+                    icon: Icon(Icons.edit),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> showPostFormDialog(Post? post) async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return postForm(post);
+      },
+    );
+  }
+
+  Widget postForm(Post? post) {
+    final postFormKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: post?.title ?? "");
+    final contentController = TextEditingController(text: post?.content ?? "");
+    final ScrollController newImagesScrollController = ScrollController();
+    final ScrollController existingImagesScrollController = ScrollController();
+    const int maxImages = 5;
+    final List<PostImage> existingImages = List.from(post?.images ?? []);
+    final List<PlatformFile> newImages = [];
+
+    final isNewPost = post == null;
+
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: Text(isNewPost ? "Create Post" : "Edit Post"),
+          actions: [
+            SizedBox(
+              width: 600,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Consumer<PostProvider>(
+                  builder: (context, provider, child) {
+                    return ElevatedButton(
+                      onPressed: provider.loading
+                          ? null
+                          : () async {
+                              if (!postFormKey.currentState!.validate()) {
+                                return;
+                              }
+
+                              final success = isNewPost
+                                  ? await context.read<PostProvider>().createPost(title: titleController.text.trim(), content: contentController.text.trim(), images: newImages)
+                                  : await context.read<PostProvider>().updatePost(post: post, title: titleController.text.trim(), content: contentController.text.trim(), remainingImages: existingImages, newImages: newImages);
+
+                              if (success && context.mounted) {
+                                print("SUCCESS!");
+                                Navigator.pop(context);
+                                titleController.clear();
+                                contentController.clear();
+
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: isNewPost ? const Text("Post created!") : const Text("Post updated!")));
+
+                                setState(() {
+                                  existingImages.clear();
+                                });
+                              }
+                            },
+                      child: provider.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Submit"),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Form(
+                    key: postFormKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+              
+                      children: [
+                        Text(
+                          "Title",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: titleController,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Please enter a title";
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          "Description",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          maxLines: 5,
+                          controller: contentController,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Please enter content";
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Add Images",
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                   textAlign: TextAlign.start,
+
+                  ),
+                  SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final result = await FilePicker.pickFiles(
+                        allowMultiple: true,
+                        type: FileType.image,
+                        withData: true,
+                      );
+
+                      if (result == null) return;
+
+                      final totalImages = existingImages.length + newImages.length;
+                      final remainingSlots = maxImages - totalImages;
+
+                      if (remainingSlots <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("You can upload a maximum of 5 images."),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() {
+                        for (final file in result.files.take(remainingSlots)) {
+                          if (!newImages.any((e) => e.name == file.name)) {
+                            newImages.add(file);
+                          }
+                        }
+                      });
+                    },
+                    child: DottedBorder(
+                      options: RectDottedBorderOptions(dashPattern: [8, 2], strokeWidth: 2, padding: EdgeInsets.all(16), color: Colors.black26),
+                      child: newImages.isEmpty && existingImages.isEmpty
+                          ? SizedBox(
+                        height: 100,
+                        child: Center(
+                          child: ListTile(
+                            title: Text(
+                              'Click to upload',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            subtitle: Text(
+                              'Max Size: 2MB',
+                              style: TextStyle(color: Colors.black54),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      )
+                          : SizedBox(
+                        height: 100,
+                        width: 600,
+                        child: Center(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              for (final file in newImages)
+                                _imageTile(
+                                  Image.memory(file.bytes!, width: 80, height: 80, fit: BoxFit.cover),
+                                  () {
+                                    setDialogState(() {
+                                      newImages.remove(file);
+                                    });
+                                  },
+                                ),
+
+                              for (final image in existingImages)
+                                _imageTile(
+                                  Image.network(StorageService().getImageUrl(image.imagePath), width: 80, height: 80, fit: BoxFit.cover),
+                                  () {
+                                    setDialogState(() {
+                                      existingImages.remove(image);
+                                    });
+                                  },
+                                )
+
+                            ],
+                          ),
+                        )
+
+
+
+                      ),
+                    ),
+                  ),
+
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _imageTile (Widget image, VoidCallback onDelete) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 90,
+            height: 90,
+            child: image,
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: InkWell(
+            onTap: onDelete,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Future<void> _pickImages() async {
+    final result = await FilePicker.pickFiles(allowMultiple: true, type: FileType.image, withData: true);
 
     if (result != null) {
       setState(() {

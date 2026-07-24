@@ -1,3 +1,5 @@
+import 'package:simple_blog/models/post_image_model.dart';
+
 class Post {
   final int id;
   final String userId;
@@ -5,6 +7,7 @@ class Post {
   final String content;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final List<PostImage> images;
 
   Post({
     required this.id,
@@ -13,6 +16,7 @@ class Post {
     required this.content,
     required this.createdAt,
     this.updatedAt,
+    required this.images,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -25,6 +29,10 @@ class Post {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
+      images: (json['post_images'] as List<dynamic>?)
+          ?.map((e) => PostImage.fromJson(e))
+          .toList() ??
+          [],
     );
   }
 

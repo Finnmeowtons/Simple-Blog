@@ -1,10 +1,14 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:simple_blog/services/post_service.dart';
 
+import '../models/post_image_model.dart';
 import '../models/post_model.dart';
+import '../services/storage_service.dart';
 
-class PostProvider extends ChangeNotifier{
+class PostProvider extends ChangeNotifier {
   final PostService _postService = PostService();
+  final StorageService _storageService = StorageService();
 
   bool _loading = false;
   List<Post> _posts = [];
@@ -25,7 +29,7 @@ class PostProvider extends ChangeNotifier{
 
     try {
       _posts = await _loadPosts();
-    } catch (e){
+    } catch (e) {
       _error = e.toString();
       print(_error);
     } finally {
@@ -34,17 +38,23 @@ class PostProvider extends ChangeNotifier{
     }
   }
 
-  Future<bool> createPost({required String title, required String content}) async {
+  Future<bool> createPost({required String title, required String content, required List<PlatformFile> images}) async {
     _loading = true;
     _error = null;
     notifyListeners();
 
-    try{
-      await _postService.createPost(title: title, content: content);
+    try {
+      final post = await _postService.createPost(title: title, content: content);
+
+      if (images.isNotEmpty) {
+        final imagePaths = await _storageService.uploadImages(images: images, post: post);
+
+        await _postService.savePostImages(postId: post.id, imagePaths: imagePaths);
+      }
 
       _posts = await _loadPosts();
       return true;
-    } catch (e){
+    } catch (e) {
       _error = e.toString();
       print(_error);
       return false;
@@ -54,16 +64,50 @@ class PostProvider extends ChangeNotifier{
     }
   }
 
-  Future<bool> updatePost({required int id, required String title, required String content}) async {
+  Future<bool> updatePost({
+    required Post post,
+    required String title,
+    required String content,
+    required List<PostImage> remainingImages,
+    required List<PlatformFile> newImages,
+  }) async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _postService.updatePost(id: id, title: title, content: content);
+      await _postService.updatePost(
+        id: post.id,
+        title: title,
+        content: content,
+      );
+
+      final removedImages = post.images.where(
+            (image) => !remainingImages.any(
+              (remaining) => remaining.id == image.id,
+        ),
+      ).toList();
+
+      if (removedImages.isNotEmpty) {
+        await _storageService.deleteImages(removedImages);
+        await _postService.deletePostImages(removedImages);
+      }
+
+      if (newImages.isNotEmpty) {
+        final imagePaths = await _storageService.uploadImages(
+          post: post,
+          images: newImages,
+        );
+
+        await _postService.savePostImages(
+          postId: post.id,
+          imagePaths: imagePaths,
+        );
+      }
+
       _posts = await _loadPosts();
       return true;
-    } catch (e){
+    } catch (e) {
       _error = e.toString();
       print(_error);
       return false;
@@ -73,18 +117,25 @@ class PostProvider extends ChangeNotifier{
     }
   }
 
-  Future<bool> deletePost({required int id}) async {
+  Future<bool> deletePost({required Post post}) async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _postService.deletePost(id: id);
+      // Delete files from Storage
+      await _storageService.deleteImages(post.images);
+
+      // Delete rows from post_images
+      await _postService.deletePostImages(post.images);
+
+      // Delete the post
+      await _postService.deletePost(id: post.id);
+
       _posts = await _loadPosts();
       return true;
-    } catch (e){
+    } catch (e) {
       _error = e.toString();
-      print(_error);
       return false;
     } finally {
       _loading = false;

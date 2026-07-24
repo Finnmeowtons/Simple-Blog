@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:simple_blog/models/post_model.dart';
 import 'package:simple_blog/providers/post_provider.dart';
 import 'package:simple_blog/services/post_service.dart';
+import 'package:simple_blog/services/storage_service.dart';
 
+import '../models/post_image_model.dart';
 import '../providers/auth_provider.dart';
 
 class ForumScreen extends StatefulWidget {
@@ -38,6 +40,8 @@ class _ForumScreenState extends State<ForumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.watch<AuthProvider>().user;
+
     return Scaffold(
       appBar: _appBar(),
       body: Column(
@@ -53,7 +57,6 @@ class _ForumScreenState extends State<ForumScreen> {
                 } else if (provider.posts.isEmpty) {
                   return Center(child: const Text("No posts found."));
                 }
-                final currentUser = context.watch<AuthProvider>().user;
                 return ListView.builder(
                   itemCount: provider.posts.length,
                   itemBuilder: (context, index) {
@@ -96,13 +99,38 @@ class _ForumScreenState extends State<ForumScreen> {
             children: [
               Text(email),
               ListTile(title: Text(post.title), subtitle: Text(post.content)),
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: post.images.length,
+                  itemBuilder: (context, index) {
+                    final image = post.images[index];
+
+                    final imageUrl = StorageService().getImageUrl(image.imagePath);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          imageUrl,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
               if (isOwner)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
                       onPressed: () async {
-                        final success = await context.read<PostProvider>().deletePost(id: post.id);
+                        final success = await context.read<PostProvider>().deletePost(post: post);
                         if (success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted!")));
                         }
@@ -111,12 +139,7 @@ class _ForumScreenState extends State<ForumScreen> {
                     ),
                     IconButton(
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(title: const Text("Update Post"));
-                          },
-                        );
+                        showUpdateDialog(post);
                       },
                       icon: Icon(Icons.edit),
                     ),
@@ -129,83 +152,317 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
+  Future<void> showUpdateDialog(Post post) async {
+    final updateFormKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: post.title);
+    final contentController = TextEditingController(text: post.content);
+
+    final List<PostImage> existingImages = List.from(post.images);
+    final List<PlatformFile> newImages = [];
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text("Update Post"),
+              content: SizedBox(
+                width: 600,
+                child: Card(
+                  elevation: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Form(
+                          key: updateFormKey,
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                decoration: const InputDecoration(labelText: "Title"),
+                                controller: titleController,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return "Please enter a title";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              TextFormField(
+                                decoration: const InputDecoration(labelText: "Content"),
+                                maxLines: 5,
+                                controller: contentController,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return "Please enter content";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              Row(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      // await FilePicker.clearTemporaryFiles();
+                                      final result = await FilePicker.pickFiles(
+                                        allowMultiple: true,
+                                        type: FileType.image,
+                                        withData: true,
+                                      );
+
+                                      if (result != null) {
+                                        setDialogState(() {
+                                          for (final file in result.files) {
+                                            if (!newImages.any((e) => e.name == file.name)) {
+                                              newImages.add(file);
+                                            }
+                                          }
+                                        });
+                                      }
+                                    },
+                                    child: const Text("Add Images"),
+                                  ),
+                                  Consumer<PostProvider>(
+                                    builder: (context, provider, child) {
+                                      return ElevatedButton(
+                                        onPressed: provider.loading ? null : () async {
+                                          if (!updateFormKey.currentState!.validate()) {
+                                            return;
+                                          }
+
+                                          final success = await context.read<PostProvider>().updatePost(
+                                            post: post,
+                                            title: titleController.text.trim(),
+                                            content: contentController.text.trim(),
+                                            remainingImages: existingImages,
+                                            newImages: newImages,
+                                          );
+
+
+                                          if (success && context.mounted) {
+                                            print("SUCCESS!");
+                                            Navigator.pop(context);
+                                            titleController.clear();
+                                            contentController.clear();
+
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post updated!")));
+
+                                            setState(() {
+                                              existingImages.clear();
+                                            });
+                                          }
+                                        },
+                                        child: provider.loading
+                                            ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                            : const Text("Submit"),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 16,),
+                        if (existingImages.isNotEmpty)
+                          SizedBox(
+                            height: 100,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: existingImages.length,
+                              itemBuilder: (context, index) {
+                                final image = existingImages[index];
+
+                                return Stack(
+                                  children: [
+                                    Image.network(
+                                      StorageService().getImageUrl(image.imagePath),
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close),
+                                        onPressed: () {
+                                          setDialogState(() {
+                                            existingImages.removeAt(index);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        SizedBox(
+                          height: 100,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: newImages.length,
+                            itemBuilder: (context, index) {
+                              final file = newImages[index];
+
+                              return Stack(
+                                children: [
+                                  Image.memory(
+                                    file.bytes!,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          newImages.removeAt(index);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        // if (existingImages.isNotEmpty)
+                        //   Text("${existingImages.length} image(s) selected"),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _createPostForm() {
 
-    return SizedBox(
+    return
+      SizedBox(
       width: 600,
       child: Card(
         elevation: 5,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  decoration: const InputDecoration(labelText: "Title"),
-                  controller: _titleController,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Please enter a title";
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: "Content"),
-                  maxLines: 5,
-                  controller: _contentController,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Please enter content";
-                    }
-                    return null;
-                  },
-                ),
-                Row(
+          child: Column(
+            children: [
+              Form(
+                key: _formKey,
+                child: Column(
                   children: [
-                    ElevatedButton(
-                      onPressed: () => _pickImages(),
-                      child: const Text("Upload Image"),
-                    ),
-                    Consumer<PostProvider>(
-                      builder: (context, provider, child) {
-                        return ElevatedButton(
-                          onPressed: () async {
-                            if (!_formKey.currentState!.validate()) {
-                              return;
-                            }
-                    
-                            final success = await context.read<PostProvider>().createPost(title: _titleController.text.trim(), content: _contentController.text.trim());
-                    
-                            if (success && context.mounted) {
-                              _titleController.clear();
-                              _contentController.clear();
-                    
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post created!")));
-                            }
-                          },
-                          child: provider.loading ? const CircularProgressIndicator() : const Text("Submit"),
-                        );
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: "Title"),
+                      controller: _titleController,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Please enter a title";
+                        }
+                        return null;
                       },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: "Content"),
+                      maxLines: 5,
+                      controller: _contentController,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Please enter content";
+                        }
+                        return null;
+                      },
+                    ),
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => _pickImages(),
+                          child: const Text("Upload Image"),
+                        ),
+                        Consumer<PostProvider>(
+                          builder: (context, provider, child) {
+                            return ElevatedButton(
+                              onPressed: provider.loading ? null : () async {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
+
+                                final success = await context.read<PostProvider>().createPost(title: _titleController.text.trim(), content: _contentController.text.trim(), images: _selectedImages);
+
+                                if (success && context.mounted) {
+                                  _titleController.clear();
+                                  _contentController.clear();
+
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post created!")));
+
+                                  setState(() {
+                                    _selectedImages.clear();
+                                  });
+                                }
+                              },
+                                child: provider.loading
+                                    ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                                    : const Text("Submit"),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Column(
-                  children: _selectedImages.map((file) {
-                    return ListTile(
-                      leading: const Icon(Icons.image),
-                      title: Text(file.name),
+              ),
+              SizedBox(height: 16,),
+              if (_selectedImages.isNotEmpty)
+                SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length,
+                  itemBuilder: (context, index) {
+                    final file = _selectedImages[index];
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          file.bytes!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     );
-                  }).toList(),
+                  },
                 ),
-              ],
-            ),
+              ),
+              if (_selectedImages.isNotEmpty)
+                Text("${_selectedImages.length} image(s) selected"),
+            ],
           ),
         ),
       ),
     );
   }
+
   Future<void> _pickImages() async {
     final result = await FilePicker.pickFiles(
       allowMultiple: true,

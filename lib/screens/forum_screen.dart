@@ -1,11 +1,13 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_blog/models/post_model.dart';
 import 'package:simple_blog/providers/post_provider.dart';
 import 'package:simple_blog/services/post_service.dart';
 import 'package:simple_blog/services/storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zo_animated_border/widget/zo_dual_border.dart';
 import 'package:zo_animated_border/widget/zo_fire_border.dart';
 
@@ -46,11 +48,12 @@ class _ForumScreenState extends State<ForumScreen> {
     final currentUser = context.watch<AuthProvider>().user;
 
     return Scaffold(
-      appBar: _appBar(),
+      appBar: _appBar(currentUser),
       body: Column(
         children: [
           SizedBox(height: 16),
-          _createPostForm(),
+          if (currentUser != null)
+            _createPostForm(),
           SizedBox(height: 16),
           Expanded(
             child: Consumer<PostProvider>(
@@ -78,16 +81,16 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
-  PreferredSizeWidget _appBar() {
+  PreferredSizeWidget _appBar(User? user) {
     return AppBar(
       title: const Text("Forum"),
       centerTitle: true,
       actions: [
         IconButton(
           onPressed: () async {
-            await context.read<AuthProvider>().logout();
+            user != null ? await context.read<AuthProvider>().logout() : context.push('/auth');
           },
-          icon: const Icon(Icons.logout),
+          icon: user != null ? Icon(Icons.logout) : Icon(Icons.login),
         ),
       ],
     );
@@ -116,100 +119,6 @@ class _ForumScreenState extends State<ForumScreen> {
               ),
             );
           },
-        ),
-      ),
-    );
-    SizedBox(
-      width: 600,
-      child: Card(
-        elevation: 5,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: "Title"),
-                      controller: _titleController,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter a title";
-                        }
-                        return null;
-                      },
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: "Content"),
-                      maxLines: 5,
-                      controller: _contentController,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter content";
-                        }
-                        return null;
-                      },
-                    ),
-                    Row(
-                      children: [
-                        ElevatedButton(onPressed: () => _pickImages(), child: const Text("Upload Image")),
-                        Consumer<PostProvider>(
-                          builder: (context, provider, child) {
-                            return ElevatedButton(
-                              onPressed: provider.loading
-                                  ? null
-                                  : () async {
-                                if (!_formKey.currentState!.validate()) {
-                                  return;
-                                }
-
-                                final success = await context.read<PostProvider>().createPost(title: _titleController.text.trim(), content: _contentController.text.trim(), images: _selectedImages);
-
-                                if (success && context.mounted) {
-                                  _titleController.clear();
-                                  _contentController.clear();
-
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post created!")));
-
-                                  setState(() {
-                                    _selectedImages.clear();
-                                  });
-                                }
-                              },
-                              child: provider.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Submit"),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              if (_selectedImages.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _selectedImages.length,
-                    itemBuilder: (context, index) {
-                      final file = _selectedImages[index];
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.memory(file.bytes!, width: 80, height: 80, fit: BoxFit.cover),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              if (_selectedImages.isNotEmpty) Text("${_selectedImages.length} image(s) selected"),
-            ],
-          ),
         ),
       ),
     );

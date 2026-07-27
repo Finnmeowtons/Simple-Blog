@@ -156,6 +156,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       );
                     }
+                    if (context.mounted) {
+                      context.go('/');
+                    }
                   }
                 }, child: auth.loading ? const CircularProgressIndicator() : const Text("Register")),
               );

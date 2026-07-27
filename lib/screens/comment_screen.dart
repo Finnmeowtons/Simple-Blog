@@ -116,7 +116,8 @@ class _CommentScreenState extends State<CommentScreen> {
             ),
           ),
 
-          _commentField(),
+          if (currentUser != null)
+            _commentField(),
         ],
       ),
     );

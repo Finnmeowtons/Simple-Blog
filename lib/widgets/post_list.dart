@@ -7,52 +7,48 @@ import '../providers/post_provider.dart';
 
 class PostList extends StatelessWidget {
   final String? currentUserId;
-  final String currentUserEmail;
   final ValueChanged<Post> onComment;
   final ValueChanged<Post> onEdit;
 
   const PostList({
     super.key,
     required this.currentUserId,
-    required this.currentUserEmail,
     required this.onComment,
     required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Consumer<PostProvider>(
-        builder: (context, provider, child) {
-          if (provider.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Consumer<PostProvider>(
+      builder: (context, provider, child) {
+        if (provider.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (provider.error != null) {
-            return Center(child: Text(provider.error!));
-          }
+        if (provider.error != null) {
+          return Center(child: Text(provider.error!));
+        }
 
-          if (provider.posts.isEmpty) {
-            return const Center(child: Text("No posts found."));
-          }
+        if (provider.posts.isEmpty) {
+          return const Center(child: Text("No posts found."));
+        }
 
-          return ListView.builder(
-            reverse: true,
-            itemCount: provider.posts.length,
-            itemBuilder: (context, index) {
-              final post = provider.posts[index];
+        return ListView.builder(
+          padding: EdgeInsets.zero,
+          // reverse: true,
+          itemCount: provider.posts.length,
+          itemBuilder: (context, index) {
+            final post = provider.posts[index];
 
-              return PostCard(
-                post: post,
-                isOwner: currentUserId == post.userId,
-                email: currentUserEmail,
-                onComment: () => onComment(post),
-                onEdit: () => onEdit(post),
-              );
-            },
-          );
-        },
-      ),
+            return PostCard(
+              post: post,
+              isOwner: currentUserId == post.userId,
+              onComment: () => onComment(post),
+              onEdit: () => onEdit(post),
+            );
+          },
+        );
+      },
     );
   }
 }

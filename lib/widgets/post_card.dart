@@ -5,82 +5,197 @@ import '../models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../services/storage_service.dart';
 
-class PostCard extends StatelessWidget {
+class PostCard extends StatefulWidget {
   final Post post;
   final bool isOwner;
-  final String email;
   final VoidCallback onComment;
   final VoidCallback onEdit;
-  const PostCard({super.key, required this.post, required this.isOwner, required this.email, required this.onComment, required this.onEdit});
+
+  const PostCard({super.key, required this.post, required this.isOwner, required this.onComment, required this.onEdit});
+
+  @override
+  State<PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<PostCard> {
+  bool _hovering = false;
+
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("PostCard${post.id} build ");
-    return Center(
-      child: SizedBox(
-        width: 800,
-        child: Column(
-          children: [
-            Text(email),
-            ListTile(
-              title: Text(post.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26)),
-              subtitle: Text(post.content, style: TextStyle(fontSize: 20)),
-              contentPadding: EdgeInsets.symmetric(vertical: 0),
-            ),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: post.images.length,
-                itemBuilder: (context, index) {
-                  final image = post.images[index];
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Card(
+            elevation: 1,
+            color: Colors.white,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.post.title,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
 
-                  final imageUrl = StorageService().getImageUrl(image.imagePath);
+                  const SizedBox(height: 10),
 
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                  Text(widget.post.content, style: TextStyle(fontSize: 16, color: Colors.grey.shade800)),
+
+                  if (widget.post.images.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      height: 280,
+                      child: Stack(
+                        children: [
+                          PageView.builder(
+                            controller: _pageController,
+                            itemCount: widget.post.images.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _currentPage = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              final image = widget.post.images[index];
+
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(StorageService().getImageUrl(image.imagePath), fit: BoxFit.fitHeight, height: 200,),
+                              );
+                            },
+                          ),
+
+                          if (widget.post.images.length > 1)...[
+
+                            Positioned(
+                              left: 8,
+                              top: 0,
+                              bottom: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                color: Colors.black,
+                                onPressed: _currentPage == 0
+                                    ? null
+                                    : () {
+                                  _pageController.previousPage(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
+                              ),
+                            ),
+
+                            Positioned(
+                              right: 8,
+                              top: 0,
+                              bottom: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                color: Colors.black,
+                                onPressed: _currentPage ==
+                                    widget.post.images.length - 1
+                                    ? null
+                                    : () {
+                                  _pageController.nextPage(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 12,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  widget.post.images.length,
+                                  (index) => AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    width: _currentPage == index ? 18 : 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: _currentPage == index ? Colors.black : Colors.black54),
+                                  ),
+                                ),
+                              ),
+                            ),]
+                        ],
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    print("Comment Pressed");
-                    onComment();
-                  },
-                  icon: Icon(Icons.comment),
-                ),
+                  ],
 
-                if (isOwner)
+                  const SizedBox(height: 16),
+
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () async {
-                          final success = await context.read<PostProvider>().deletePost(post: post);
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted!")));
-                          }
-                        },
-                        icon: const Icon(Icons.delete),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          onEdit();
-                        },
-                        icon: Icon(Icons.edit),
-                      ),
+                      FilledButton.icon(onPressed: widget.onComment, icon: const Icon(Icons.comment_outlined), label: const Text("Comments")),
+
+                      const Spacer(),
+
+                      if (widget.isOwner)
+                        Visibility(
+                          visible: widget.isOwner && _hovering,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          maintainSize: true,
+                          child: PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (value) async {
+                              switch (value) {
+                                case "edit":
+                                  widget.onEdit();
+                                  break;
+
+                                case "delete":
+                                  final success = await context.read<PostProvider>().deletePost(post: widget.post);
+
+                                  if (success && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted")));
+                                  }
+                                  break;
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: "edit",
+                                child: ListTile(leading: Icon(Icons.edit), title: Text("Edit")),
+                              ),
+                              PopupMenuItem(
+                                value: "delete",
+                                child: ListTile(leading: Icon(Icons.delete), title: Text("Delete")),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
-              ],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

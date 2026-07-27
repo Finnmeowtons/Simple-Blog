@@ -115,19 +115,23 @@ class CommentProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteComment({required Comment comment}) async {
+  Future<bool> deleteComment({
+    required Comment comment,
+  }) async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _storageService.deleteCommentImages(comment.images);
-
-      await _commentService.deleteCommentImages(comment.images);
+      if (comment.images.isNotEmpty) {
+        await _commentService.deleteCommentImages(comment.images);
+        await _storageService.deleteCommentImages(comment.images);
+      }
 
       await _commentService.deleteComment(id: comment.id);
 
       _comments = await _loadComments(postId: comment.postId);
+
       return true;
     } catch (e) {
       _error = e.toString();

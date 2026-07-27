@@ -52,14 +52,18 @@ class _ForumScreenState extends State<ForumScreen> {
         children: [
           Column(
             children: [
-              SizedBox(height: 16),
-              if (currentUser != null) _createPostForm(),
-              SizedBox(height: 16),
+
+              if (currentUser != null)
+              Column(
+                children: [
+                  SizedBox(height: 16),
+                  _createPostForm(),
+                  SizedBox(height: 16),
+                ],
+              ),
               Expanded(
                 child: PostList(
                   currentUserId: currentUser?.id,
-                  currentUserEmail: currentUser?.email ?? "",
-
                   onComment: (post) {
                     debugPrint("Comments Pressed");
                     _selectedPost.value = post;
@@ -107,6 +111,7 @@ class _ForumScreenState extends State<ForumScreen> {
     return AppBar(
       title: const Text("Forum"),
       centerTitle: true,
+
       actions: [
         IconButton(
           onPressed: () async {

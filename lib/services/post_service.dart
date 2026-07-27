@@ -13,7 +13,8 @@ class PostService {
         id,
         image_path
       )
-    ''');
+    ''')
+        .order('created_at');
     return response.map((e) => Post.fromJson(e)).toList();
   }
 
@@ -46,8 +47,14 @@ class PostService {
   }
 
   Future<void> deletePostImages(List<PostImage> images) async {
+    if (images.isEmpty) return;
+
     final ids = images.map((e) => e.id).toList();
 
-    await supabase.from('post_images').delete().inFilter('id', ids);
+    await supabase
+        .from('post_images')
+        .delete()
+        .inFilter('id', ids);
+
   }
 }

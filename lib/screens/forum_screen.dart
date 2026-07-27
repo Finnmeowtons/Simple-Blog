@@ -5,14 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_blog/models/post_model.dart';
 import 'package:simple_blog/providers/post_provider.dart';
-import 'package:simple_blog/services/post_service.dart';
+import 'package:simple_blog/screens/comment_screen.dart';
 import 'package:simple_blog/services/storage_service.dart';
+import 'package:simple_blog/widgets/image_tile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zo_animated_border/widget/zo_dual_border.dart';
-import 'package:zo_animated_border/widget/zo_fire_border.dart';
 
 import '../models/post_image_model.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/post_list.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -22,10 +23,7 @@ class ForumScreen extends StatefulWidget {
 }
 
 class _ForumScreenState extends State<ForumScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  List<PlatformFile> _selectedImages = [];
+  final ValueNotifier<Post?> _selectedPost = ValueNotifier(null);
 
   @override
   void initState() {
@@ -34,47 +32,71 @@ class _ForumScreenState extends State<ForumScreen> {
     Future.microtask(() {
       context.read<PostProvider>().getPosts();
     });
+    debugPrint("ForumScreen initState");
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
+    _selectedPost.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("ForumScreen build");
     final currentUser = context.watch<AuthProvider>().user;
 
     return Scaffold(
       appBar: _appBar(currentUser),
-      body: Column(
+      body: Stack(
         children: [
-          SizedBox(height: 16),
-          if (currentUser != null)
-            _createPostForm(),
-          SizedBox(height: 16),
-          Expanded(
-            child: Consumer<PostProvider>(
-              builder: (context, provider, child) {
-                if (provider.loading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (provider.error != null) {
-                  return Center(child: Text(provider.error!));
-                } else if (provider.posts.isEmpty) {
-                  return Center(child: const Text("No posts found."));
-                }
-                return ListView.builder(
-                  itemCount: provider.posts.length,
-                  itemBuilder: (context, index) {
-                    final post = provider.posts[index];
-                    final isOwner = currentUser?.id == post.userId;
-                    return _buildPost(post, isOwner, currentUser?.email ?? "");
+          Column(
+            children: [
+              SizedBox(height: 16),
+              if (currentUser != null) _createPostForm(),
+              SizedBox(height: 16),
+              Expanded(
+                child: PostList(
+                  currentUserId: currentUser?.id,
+                  currentUserEmail: currentUser?.email ?? "",
+
+                  onComment: (post) {
+                    debugPrint("Comments Pressed");
+                    _selectedPost.value = post;
                   },
-                );
-              },
-            ),
+
+                  onEdit: (post) {
+                    showPostFormDialog(post);
+                  },
+                ),
+              ),
+            ],
+          ),
+          ValueListenableBuilder<Post?>(
+            valueListenable: _selectedPost,
+            builder: (context, selectedPost, _) {
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                right: selectedPost == null ? -470 : 16,
+                top: 16,
+                bottom: 16,
+                child: Material(
+                  elevation: 12,
+                  borderRadius: BorderRadius.circular(20),
+                  clipBehavior: Clip.antiAlias,
+                  child: SizedBox(
+                    width: 450,
+                    child: selectedPost == null
+                        ? const SizedBox.shrink()
+                        : CommentScreen(
+                      post: selectedPost,
+                      onClose: () => _selectedPost.value = null,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -124,64 +146,6 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
-  Widget _buildPost(Post post, bool isOwner, String email) {
-    return Center(
-      child: SizedBox(
-        width: 800,
-        child: Column(
-          children: [
-            Text(email),
-            ListTile(
-              title: Text(post.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26)),
-              subtitle: Text(post.content, style: TextStyle(fontSize: 20)),
-              contentPadding: EdgeInsets.symmetric(vertical: 0),
-            ),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: post.images.length,
-                itemBuilder: (context, index) {
-                  final image = post.images[index];
-
-                  final imageUrl = StorageService().getImageUrl(image.imagePath);
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(imageUrl, width: 100, height: 100, fit: BoxFit.cover),
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (isOwner)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    onPressed: () async {
-                      final success = await context.read<PostProvider>().deletePost(post: post);
-                      if (success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Post deleted!")));
-                      }
-                    },
-                    icon: const Icon(Icons.delete),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      showPostFormDialog(post);
-                    },
-                    icon: Icon(Icons.edit),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> showPostFormDialog(Post? post) async {
     return showDialog(
@@ -259,7 +223,7 @@ class _ForumScreenState extends State<ForumScreen> {
                     key: postFormKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-              
+
                       children: [
                         Text(
                           "Title",
@@ -298,17 +262,12 @@ class _ForumScreenState extends State<ForumScreen> {
                   Text(
                     "Add Images",
                     style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                   textAlign: TextAlign.start,
-
+                    textAlign: TextAlign.start,
                   ),
                   SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
-                      final result = await FilePicker.pickFiles(
-                        allowMultiple: true,
-                        type: FileType.image,
-                        withData: true,
-                      );
+                      final result = await FilePicker.pickFiles(allowMultiple: true, type: FileType.image, withData: true);
 
                       if (result == null) return;
 
@@ -316,11 +275,7 @@ class _ForumScreenState extends State<ForumScreen> {
                       final remainingSlots = maxImages - totalImages;
 
                       if (remainingSlots <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("You can upload a maximum of 5 images."),
-                          ),
-                        );
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("You can upload a maximum of 5 images.")));
                         return;
                       }
 
@@ -336,60 +291,47 @@ class _ForumScreenState extends State<ForumScreen> {
                       options: RectDottedBorderOptions(dashPattern: [8, 2], strokeWidth: 2, padding: EdgeInsets.all(16), color: Colors.black26),
                       child: newImages.isEmpty && existingImages.isEmpty
                           ? SizedBox(
-                        height: 100,
-                        child: Center(
-                          child: ListTile(
-                            title: Text(
-                              'Click to upload',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            subtitle: Text(
-                              'Max Size: 2MB',
-                              style: TextStyle(color: Colors.black54),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      )
-                          : SizedBox(
-                        height: 100,
-                        width: 600,
-                        child: Center(
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              for (final file in newImages)
-                                _imageTile(
-                                  Image.memory(file.bytes!, width: 80, height: 80, fit: BoxFit.cover),
-                                  () {
-                                    setDialogState(() {
-                                      newImages.remove(file);
-                                    });
-                                  },
+                              height: 100,
+                              child: Center(
+                                child: ListTile(
+                                  title: Text(
+                                    'Click to upload',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  subtitle: Text(
+                                    'Max Size: 2MB',
+                                    style: TextStyle(color: Colors.black54),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
+                              ),
+                            )
+                          : SizedBox(
+                              height: 100,
+                              width: 600,
+                              child: Center(
+                                child: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    for (final file in newImages)
+                                      ImageTile(
+                                        image: Image.memory(file.bytes!, width: 80, height: 80, fit: BoxFit.cover),
+                                        onDelete: () => newImages.remove(file),
+                                      ),
 
-                              for (final image in existingImages)
-                                _imageTile(
-                                  Image.network(StorageService().getImageUrl(image.imagePath), width: 80, height: 80, fit: BoxFit.cover),
-                                  () {
-                                    setDialogState(() {
-                                      existingImages.remove(image);
-                                    });
-                                  },
-                                )
-
-                            ],
-                          ),
-                        )
-
-
-
-                      ),
+                                    for (final image in existingImages)
+                                      ImageTile(
+                                        image: Image.network(StorageService().getImageUrl(image.imagePath), width: 80, height: 80, fit: BoxFit.cover),
+                                        onDelete: () => existingImages.remove(image),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -397,50 +339,5 @@ class _ForumScreenState extends State<ForumScreen> {
         );
       },
     );
-  }
-
-  Widget _imageTile (Widget image, VoidCallback onDelete) {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 90,
-            height: 90,
-            child: image,
-          ),
-        ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: InkWell(
-            onTap: onDelete,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  Future<void> _pickImages() async {
-    final result = await FilePicker.pickFiles(allowMultiple: true, type: FileType.image, withData: true);
-
-    if (result != null) {
-      setState(() {
-        _selectedImages = result.files;
-      });
-    }
   }
 }

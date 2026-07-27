@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_blog/providers/auth_provider.dart';
+import 'package:simple_blog/providers/comment_provider.dart';
 import 'package:simple_blog/providers/post_provider.dart';
 
 import 'minimal_theme.dart';
-import 'providers/count_provider.dart';
 import 'app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,6 +14,7 @@ Future<void> main() async {
 
   final authProvider = AuthProvider();
 
+  // debugPrintRebuildDirtyWidgets = true;
   runApp(
     MyApp(authProvider: authProvider),
   );
@@ -37,8 +38,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PostProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => CommentProvider(),
+        ),
       ],
       child: MaterialApp.router(
+        showPerformanceOverlay: true,
         routerConfig: createRouter(authProvider),
         debugShowCheckedModeBanner: false,
         title: 'Simple Blog',

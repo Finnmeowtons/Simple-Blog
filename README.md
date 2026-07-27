@@ -1,17 +1,146 @@
-# simple_blog
+# Simple Blog / Forum Assessment
 
-Flutter project for Withcenter, Inc. Korea assessment
+A simple Blog/Forum application built with Flutter as part of a technical assessment.
 
-## Getting Started
+## Live Demo
 
-This project is a starting point for a Flutter application.
+https://simple-blog-assessment-delta.vercel.app
 
-A few resources to get you started if this is your first Flutter project:
+## GitHub Repository
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+https://github.com/Finnmeowtons/Simple-Blog.git
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## Tech Stack
+
+- Flutter
+- Provider (State Management)
+- go_router (Routing)
+- Supabase
+    - Authentication
+    - PostgreSQL Database
+    - Storage (Image Upload)
+
+---
+
+## Features
+
+### Authentication
+- Register using Email & Password
+- Login
+- Logout
+
+### Posts
+- Public post listing
+- Multiple image upload
+- Image preview with carousel/pagination
+- Create Post
+- Update Post
+- Delete Post
+
+### Comments
+- View comments per post
+- Create comments
+- Update comments
+- Delete comments
+- Multiple image upload
+- Image carousel
+
+### Images
+- Upload multiple images
+- Delete uploaded images
+- Image storage using Supabase Storage
+
+---
+
+## State Management
+
+Provider is used for application state management.
+
+Providers include:
+
+- AuthProvider
+- PostProvider
+- CommentProvider
+
+---
+
+## Routing
+
+Navigation is handled using **go_router**.
+
+Routes include:
+
+- Login
+- Register
+- Forum
+
+---
+
+## Backend
+
+Supabase is used for:
+
+- Authentication
+- Database
+- Image Storage
+
+Database tables:
+
+- posts
+- post_images
+- comments
+- comment_images
+
+---
+
+## Project Structure
+
+```
+lib/
+│
+├── enums/
+├── models/
+├── providers/
+├── screens/
+├── services/
+├── widgets/
+├── app_router.dart
+└── main.dart
+```
+
+---
+
+## Running Locally
+
+Clone the repository
+
+```bash
+git clone <repo>
+```
+
+Install packages
+
+```bash
+flutter pub get
+```
+
+Run the project
+
+```bash
+flutter run
+```
+
+---
+
+## Notes
+
+This project was created for a Flutter technical assessment and demonstrates:
+
+- Provider state management
+- go_router navigation
+- CRUD operations
+- Image uploads
+- Supabase integration
+- Responsive UI

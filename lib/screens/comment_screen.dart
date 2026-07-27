@@ -38,7 +38,6 @@ class _CommentScreenState extends State<CommentScreen> {
         postId: widget.post.id,
       );
     });
-    debugPrint("CommentScreen initState");
   }
   @override
   void didUpdateWidget(covariant CommentScreen oldWidget) {
@@ -61,7 +60,6 @@ class _CommentScreenState extends State<CommentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("CommentScreen build");
     final currentUser = context.watch<AuthProvider>().user;
     return Scaffold(
       appBar: AppBar(

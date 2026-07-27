@@ -35,7 +35,6 @@ class PostList extends StatelessWidget {
 
         return ListView.builder(
           padding: EdgeInsets.zero,
-          // reverse: true,
           itemCount: provider.posts.length,
           itemBuilder: (context, index) {
             final post = provider.posts[index];

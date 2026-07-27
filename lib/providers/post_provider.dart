@@ -123,13 +123,10 @@ class PostProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Delete files from Storage
       await _storageService.deleteImages(post.images);
 
-      // Delete rows from post_images
       await _postService.deletePostImages(post.images);
 
-      // Delete the post
       await _postService.deletePost(id: post.id);
 
       _posts = await _loadPosts();

@@ -14,7 +14,6 @@ Future<void> main() async {
 
   final authProvider = AuthProvider();
 
-  // debugPrintRebuildDirtyWidgets = true;
   runApp(
     MyApp(authProvider: authProvider),
   );

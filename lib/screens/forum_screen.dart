@@ -32,7 +32,6 @@ class _ForumScreenState extends State<ForumScreen> {
     Future.microtask(() {
       context.read<PostProvider>().getPosts();
     });
-    debugPrint("ForumScreen initState");
   }
 
   @override
@@ -43,7 +42,6 @@ class _ForumScreenState extends State<ForumScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("ForumScreen build");
     final currentUser = context.watch<AuthProvider>().user;
 
     return Scaffold(
@@ -65,7 +63,6 @@ class _ForumScreenState extends State<ForumScreen> {
                 child: PostList(
                   currentUserId: currentUser?.id,
                   onComment: (post) {
-                    debugPrint("Comments Pressed");
                     _selectedPost.value = post;
                   },
 
@@ -197,7 +194,6 @@ class _ForumScreenState extends State<ForumScreen> {
                                   : await context.read<PostProvider>().updatePost(post: post, title: titleController.text.trim(), content: contentController.text.trim(), remainingImages: existingImages, newImages: newImages);
 
                               if (success && context.mounted) {
-                                print("SUCCESS!");
                                 Navigator.pop(context);
                                 titleController.clear();
                                 contentController.clear();

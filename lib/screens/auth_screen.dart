@@ -55,14 +55,6 @@ class _AuthScreenState extends State<AuthScreen> {
         context.go('/');
         } ,),
       centerTitle: true,
-      // actions: [
-      //   IconButton(
-      //     onPressed: () {
-      //       context.go('/');
-      //     },
-      //     icon:Icon(Icons.home),
-      //   ),
-      // ],
     );
   }
 
@@ -143,7 +135,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 width: double.infinity,
                 child: ElevatedButton(onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Register user
                     await context.read<AuthProvider>().register(
                       email: _emailController.text,
                       password: _passwordController.text,

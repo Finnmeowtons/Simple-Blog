@@ -7,8 +7,6 @@ class ImageTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("Image");
-    debugPrint("Image $image");
 
       return Stack(
         children: [

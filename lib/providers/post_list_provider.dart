@@ -23,11 +23,9 @@ class PostListProvider extends ChangeNotifier {
     _loading = true;
     _error = null;
     notifyListeners();
-    print("Get post");
     try {
       final fetchedPosts = await _postService.getPosts();
 
-      print(fetchedPosts.map((e) => e.id).toList());
 
       _posts
         ..clear()

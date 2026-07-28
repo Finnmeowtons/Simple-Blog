@@ -23,7 +23,6 @@ class _ForumScreenState extends State<ForumScreen> {
   @override
   void initState() {
     super.initState();
-    print("ForumScreen initState ${hashCode}");
 
     Future.microtask(() {
       context.read<PostListProvider>().getPosts();

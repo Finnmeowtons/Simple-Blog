@@ -211,11 +211,9 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    print("submitting form. Is Login ${mode == AuthMode.login}2");
     final success = mode == AuthMode.login
         ? await context.read<AuthProvider>().login(email: _emailController.text.trim(), password: _passwordController.text)
         : await context.read<AuthProvider>().register(email: _emailController.text.trim(), password: _passwordController.text);
-    print("submitting form. Is Login ${mode == AuthMode.login}");
 
     if (success && context.mounted) {
       Navigator.pop(context);

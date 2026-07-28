@@ -33,7 +33,6 @@ class CommentProvider extends ChangeNotifier {
       _comments = await _loadComments(postId: postId);
     } catch (e) {
       _error = e.toString();
-      print(_error);
     } finally {
       _loading = false;
       notifyListeners();
@@ -56,7 +55,6 @@ class CommentProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = e.toString();
-      print(_error);
       return false;
     } finally {
       _loading = false;
@@ -107,7 +105,6 @@ class CommentProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = e.toString();
-      print(_error);
       return false;
     } finally {
       _loading = false;

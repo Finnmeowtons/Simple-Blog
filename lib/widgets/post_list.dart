@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_blog/widgets/post_card.dart';
 
 import '../models/post_model.dart';
-import '../providers/post_provider.dart';
+import '../providers/post_detail_provider.dart';
+import '../providers/post_list_provider.dart';
 
 class PostList extends StatelessWidget {
   final String? currentUserId;
-  final ValueChanged<Post> onComment;
-  final ValueChanged<Post> onEdit;
 
   const PostList({
     super.key,
     required this.currentUserId,
-    required this.onComment,
-    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PostProvider>(
+    return Consumer<PostListProvider>(
       builder: (context, provider, child) {
         if (provider.loading) {
           return const Center(child: CircularProgressIndicator());
@@ -42,8 +40,9 @@ class PostList extends StatelessWidget {
             return PostCard(
               post: post,
               isOwner: currentUserId == post.userId,
-              onComment: () => onComment(post),
-              onEdit: () => onEdit(post),
+              onComment: () {},
+              onEdit: () {},
+
             );
           },
         );

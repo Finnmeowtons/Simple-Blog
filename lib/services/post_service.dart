@@ -9,13 +9,33 @@ class PostService {
   Future<List<Post>> getPosts() async {
     final response = await supabase.from('posts').select('''
       *,
+      profiles (
+        id,
+        email
+      ),
       post_images (
         id,
         image_path
       )
     ''')
-        .order('created_at');
+        .order('created_at', ascending: false);
     return response.map((e) => Post.fromJson(e)).toList();
+  }
+
+  Future<Post> getPost({required int id}) async {
+    final response = await supabase.from('posts').select('''
+      *,
+      profiles (
+        id,
+        email
+      ),
+      post_images (
+        id,
+        image_path
+      )
+    ''')
+        .eq('id', id);
+    return Post.fromJson(response.first);
   }
 
   Future<Post> createPost({required String title, required String content}) async {

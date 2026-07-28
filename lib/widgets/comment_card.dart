@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/comment_model.dart';
@@ -73,8 +74,22 @@ class _CommentCardState extends State<CommentCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    child: Padding(padding: const EdgeInsets.all(12), child: Text(widget.comment.content)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(widget.comment.profile!.email, style: TextStyle(fontSize: 12, color: Colors.grey.shade600),),
+                          if(_hovering)
+                            Text(DateFormat('MMM d, yyyy • h:mm a').format(widget.comment.createdAt), style: TextStyle(fontSize: 12, color: Colors.grey.shade600),),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Card(
+                        child: Padding(padding: const EdgeInsets.all(12), child: Text(widget.comment.content)),
+                      ),
+                    ],
                   ),
 
                   if (widget.comment.images.isNotEmpty) ...[
@@ -139,6 +154,7 @@ class _CommentCardState extends State<CommentCard> {
                     switch (value) {
                       case "edit":
                         widget.onEdit?.call();
+
                         break;
                       case "delete":
                         widget.onDelete?.call();

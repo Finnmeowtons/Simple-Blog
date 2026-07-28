@@ -21,6 +21,7 @@ class CommentScreen extends StatefulWidget {
 }
 
 class _CommentScreenState extends State<CommentScreen> {
+  late FocusNode _commentNode;
   Comment? _editingComment;
   final _commentFormKey = GlobalKey<FormState>();
 
@@ -31,6 +32,7 @@ class _CommentScreenState extends State<CommentScreen> {
   void initState() {
     super.initState();
 
+    _commentNode = FocusNode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
@@ -56,6 +58,12 @@ class _CommentScreenState extends State<CommentScreen> {
         );
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _commentNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -102,10 +110,25 @@ class _CommentScreenState extends State<CommentScreen> {
                             ..clear()
                             ..addAll(comment.images);
                           _newImages.clear();
+                          _commentNode.requestFocus();
                         });
                       },
                       onDelete: () async {
-                        await context.read<CommentProvider>().deleteComment(comment: comment);
+                        showDialog(context: context, builder: (_){
+                          return AlertDialog(
+                            title: const Text("Delete Comment"),
+                            content: const Text("Are you sure you want to delete this comment?"),
+                            actions: [
+                              TextButton(onPressed: (){
+                                Navigator.pop(context);
+                              }, child: const Text("Cancel")),
+                              TextButton(onPressed: () async {
+                                Navigator.pop(context);
+                                await context.read<CommentProvider>().deleteComment(comment: comment);
+                              }, child: const Text("Delete")),
+                            ],
+                          );
+                        });
                       },
                     );
                   },
@@ -168,6 +191,7 @@ class _CommentScreenState extends State<CommentScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _commentController,
+                      focusNode: _commentNode,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return "Please enter a comment";

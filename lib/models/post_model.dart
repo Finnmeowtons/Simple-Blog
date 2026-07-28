@@ -1,10 +1,12 @@
 import 'package:simple_blog/models/post_image_model.dart';
+import 'package:simple_blog/models/profile_model.dart';
 
 class Post {
   final int id;
   final String userId;
   final String title;
   final String content;
+  final Profile? profile;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<PostImage> images;
@@ -14,6 +16,7 @@ class Post {
     required this.userId,
     required this.title,
     required this.content,
+    this.profile,
     required this.createdAt,
     this.updatedAt,
     required this.images,
@@ -25,9 +28,12 @@ class Post {
       userId: json['user_id'],
       title: json['title'],
       content: json['content'],
-      createdAt: DateTime.parse(json['created_at']),
+      profile: json['profiles'] == null
+          ? null
+          : Profile.fromJson(json['profiles']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
+          ? DateTime.parse(json['updated_at']).toLocal()
           : null,
       images: (json['post_images'] as List<dynamic>?)
           ?.map((e) => PostImage.fromJson(e))
@@ -42,6 +48,7 @@ class Post {
       'user_id': userId,
       'title': title,
       'content': content,
+      'profile': profile,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

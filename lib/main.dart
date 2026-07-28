@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_blog/providers/auth_provider.dart';
 import 'package:simple_blog/providers/comment_provider.dart';
-import 'package:simple_blog/providers/post_provider.dart';
+import 'package:simple_blog/providers/post_detail_provider.dart';
+import 'package:simple_blog/providers/post_list_provider.dart';
 
 import 'minimal_theme.dart';
 import 'app_router.dart';
@@ -35,14 +36,16 @@ class MyApp extends StatelessWidget {
           value: authProvider,
         ),
         ChangeNotifierProvider(
-          create: (_) => PostProvider(),
+          create: (_) => PostListProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PostDetailProvider(),
         ),
         ChangeNotifierProvider(
           create: (_) => CommentProvider(),
         ),
       ],
       child: MaterialApp.router(
-        showPerformanceOverlay: true,
         routerConfig: createRouter(authProvider),
         debugShowCheckedModeBanner: false,
         title: 'Simple Blog',

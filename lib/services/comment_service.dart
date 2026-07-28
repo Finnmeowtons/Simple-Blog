@@ -13,6 +13,10 @@ class CommentService {
         .from('comments')
         .select('''
         *,
+        profiles (
+          id,
+          email
+        ),
         comment_images (
           id,
           image_path

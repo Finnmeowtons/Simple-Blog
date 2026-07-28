@@ -40,20 +40,19 @@ class _AuthScreenState extends State<AuthScreen> {
       appBar: _appBar(),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Center(
-          child: mode == AuthMode.login
-              ? _buildLogin()
-              : _buildRegister(),
-        ),
+        child: Center(child: mode == AuthMode.login ? _buildLogin() : _buildRegister()),
       ),
     );
   }
 
   PreferredSizeWidget _appBar() {
     return AppBar(
-      title: InkWell(child: const Text("Forum",), onTap: (){
-        context.go('/');
-        } ,),
+      title: InkWell(
+        child: const Text("Forum"),
+        onTap: () {
+          context.go('/');
+        },
+      ),
       centerTitle: true,
     );
   }
@@ -65,8 +64,10 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
-          Text("Login", style:  TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black),),
+          Text(
+            "Login",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black),
+          ),
           const SizedBox(height: 16),
           emailPasswordForm(),
 
@@ -74,32 +75,24 @@ class _AuthScreenState extends State<AuthScreen> {
 
           Consumer<AuthProvider>(
             builder: (_, auth, _) {
-              return SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: auth.loading
-                      ? null
-                      : () async {
+              return Column(
+                children: [
 
-                    if (!_formKey.currentState!.validate()) {
-                      return;
-                    }
+                  if (auth.error != null)
+                    Text(
+                      auth.error!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                      ),
+                    ),
 
-                    final success = await context
-                        .read<AuthProvider>()
-                        .login(
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text,
-                    );
+                  const SizedBox(height: 8),
 
-                    if (success && context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: auth.loading
-                      ? const CircularProgressIndicator()
-                      : const Text("Login"),
-                ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(onPressed: auth.loading ? null : _submitForm, child: auth.loading ? const CircularProgressIndicator() : const Text("Login")),
+                  ),
+                ],
               );
             },
           ),
@@ -110,7 +103,7 @@ class _AuthScreenState extends State<AuthScreen> {
               context.push('/auth/register');
             },
             child: const Text("No account yet?"),
-          )
+          ),
         ],
       ),
     );
@@ -123,7 +116,10 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("Register", style:  TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black),),
+          Text(
+            "Register",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black),
+          ),
           const SizedBox(height: 16),
           emailPasswordForm(),
 
@@ -131,27 +127,25 @@ class _AuthScreenState extends State<AuthScreen> {
 
           Consumer<AuthProvider>(
             builder: (_, auth, _) {
-              return SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    await context.read<AuthProvider>().register(
-                      email: _emailController.text,
-                      password: _passwordController.text,
-                    );
+              return Column(
+                children: [
+                  if (auth.error != null)
+                    Text(
+                      auth.error!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                      ),
+                    ),
 
-                    if (auth.error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(auth.error!),
-                        ),
-                      );
-                    }
-                    if (context.mounted) {
-                      context.go('/');
-                    }
-                  }
-                }, child: auth.loading ? const CircularProgressIndicator() : const Text("Register")),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: auth.loading ? null : _submitForm,
+                      child: auth.loading ? const CircularProgressIndicator() : const Text("Register"),
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -162,7 +156,7 @@ class _AuthScreenState extends State<AuthScreen> {
               context.pop();
             },
             child: const Text("Already have an account?"),
-          )
+          ),
         ],
       ),
     );
@@ -171,13 +165,13 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget emailPasswordForm() {
     return Form(
       key: _formKey,
-      child: Column(children: [
-        TextFormField(
+      child: Column(
+        children: [
+          TextFormField(
             controller: _emailController,
-            autofillHints: const [ AutofillHints.email ],
-            decoration: const InputDecoration(
-              labelText: "Email",
-            ),
+            autofillHints: const [AutofillHints.email],
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: "Email"),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return "Please enter an email";
@@ -185,15 +179,20 @@ class _AuthScreenState extends State<AuthScreen> {
                 return "Please enter a valid email";
               }
               return null;
-            }),
-        SizedBox(height: 8,),
-        TextFormField(
+            },
+          ),
+          SizedBox(height: 8),
+          TextFormField(
             controller: _passwordController,
             obscureText: true,
-            autofillHints: const [ AutofillHints.password ],
-            decoration: const InputDecoration(
-              labelText: "Password",
-            ),
+            autofillHints: const [AutofillHints.password],
+            decoration: const InputDecoration(labelText: "Password"),
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) {
+              if (mode == AuthMode.login) {
+                _submitForm();
+              }
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return "Please enter a password";
@@ -201,8 +200,25 @@ class _AuthScreenState extends State<AuthScreen> {
                 return mode == AuthMode.register ? "Password must be at least 6 characters" : null;
               }
               return null;
-            }),
-      ],),
+            },
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    print("submitting form. Is Login ${mode == AuthMode.login}2");
+    final success = mode == AuthMode.login
+        ? await context.read<AuthProvider>().login(email: _emailController.text.trim(), password: _passwordController.text)
+        : await context.read<AuthProvider>().register(email: _emailController.text.trim(), password: _passwordController.text);
+    print("submitting form. Is Login ${mode == AuthMode.login}");
+
+    if (success && context.mounted) {
+      Navigator.pop(context);
+    }
   }
 }

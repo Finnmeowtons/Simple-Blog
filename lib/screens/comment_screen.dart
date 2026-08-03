@@ -228,20 +228,19 @@ class _CommentScreenState extends State<CommentScreen> {
                   IconButton(
                     onPressed: () async {
                       if (!_commentFormKey.currentState!.validate()) return;
+                      bool success = false;
                       if (_editingComment != null) {
-                        await context.read<CommentProvider>().updateComment(
+                        success = await context.read<CommentProvider>().updateComment(
                           comment: _editingComment!,
                           content: _commentController.text.trim(),
                           remainingImages: _existingImages,
                           newImages: _newImages,);
                       } else {
-                        await context.read<CommentProvider>().createComment(postId: widget.post.id, content: _commentController.text.trim(), images: _newImages);
+                        success = await context.read<CommentProvider>().createComment(postId: widget.post.id, content: _commentController.text.trim(), images: _newImages);
                       }
-                      setState(() {
-                        _commentController.clear();
-                        _newImages.clear();
-                        _existingImages.clear();
-                      });
+                      if (success){
+                        _clearCommentForm();
+                      }
                     },
                     icon: const Icon(Icons.send),
                   ),
@@ -252,5 +251,13 @@ class _CommentScreenState extends State<CommentScreen> {
         ),
       ),
     );
+  }
+  void _clearCommentForm() {
+    setState(() {
+      _editingComment = null;
+      _commentController.clear();
+      _newImages.clear();
+      _existingImages.clear();
+    });
   }
 }

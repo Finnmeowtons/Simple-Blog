@@ -18,7 +18,6 @@ class ForumScreen extends StatefulWidget {
 }
 
 class _ForumScreenState extends State<ForumScreen> {
-  final ValueNotifier<Post?> _selectedPost = ValueNotifier(null);
 
   @override
   void initState() {
@@ -30,37 +29,27 @@ class _ForumScreenState extends State<ForumScreen> {
   }
 
   @override
-  void dispose() {
-    _selectedPost.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final currentUser = context.watch<AuthProvider>().user;
 
     return Scaffold(
       appBar: _appBar(currentUser),
-      body: Stack(
+      body: Column(
         children: [
+
+          if (currentUser != null)
           Column(
             children: [
-
-              if (currentUser != null)
-              Column(
-                children: [
-                  SizedBox(height: 16),
-                  _createPostForm(),
-                  SizedBox(height: 16),
-                ],
-              ),
-              Expanded(
-                child: PostList(
-                  currentUserId: currentUser?.id,
-                ),
-              )
+              SizedBox(height: 16),
+              _createPostForm(),
+              SizedBox(height: 16),
             ],
           ),
+          Expanded(
+            child: PostList(
+              currentUserId: currentUser?.id,
+            ),
+          )
         ],
       ),
     );

@@ -73,29 +73,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
           const SizedBox(height: 16),
 
-          Consumer<AuthProvider>(
-            builder: (_, auth, _) {
-              return Column(
-                children: [
 
-                  if (auth.error != null)
-                    Text(
-                      auth.error!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                      ),
-                    ),
-
-                  const SizedBox(height: 8),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(onPressed: auth.loading ? null : _submitForm, child: auth.loading ? const CircularProgressIndicator() : const Text("Login")),
-                  ),
-                ],
-              );
-            },
-          ),
+          _authButton(label: "Login"),
 
           const SizedBox(height: 8),
           TextButton(
@@ -125,30 +104,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
           const SizedBox(height: 16),
 
-          Consumer<AuthProvider>(
-            builder: (_, auth, _) {
-              return Column(
-                children: [
-                  if (auth.error != null)
-                    Text(
-                      auth.error!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                      ),
-                    ),
-
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: auth.loading ? null : _submitForm,
-                      child: auth.loading ? const CircularProgressIndicator() : const Text("Register"),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+          _authButton(label: "Register"),
 
           const SizedBox(height: 8),
           TextButton(
@@ -204,6 +160,40 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _authButton({
+    required String label,
+  }) {
+    return Consumer<AuthProvider>(
+      builder: (_, auth, _) {
+        return Column(
+          children: [
+            if (auth.error != null)
+              Text(
+                auth.error!,
+                style: const TextStyle(color: Colors.red),
+              ),
+
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: auth.loading ? null : _submitForm,
+                child: auth.loading
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(),
+                )
+                    : Text(label),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
